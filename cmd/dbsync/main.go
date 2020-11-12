@@ -18,12 +18,12 @@ func main() {
 	flag.Parse()
 	var dbConn lib.DbConnection
 	// parse db connection
-	err := lib.ParseFromJsonFile(*dbConnConfig, dbConn)
+	err := lib.ParseFromJsonFile(*dbConnConfig, &dbConn)
 	if err != nil {
 		log.Fatalln("failed to parse DB connection config file!")
 	}
 	// test db connection
-	// err := dbConn.test()
+	err = dbConn.Test()
 	p, err := lib.ParsePatches(*patchDir)
 	if err != nil {
 		log.Fatalln("failed to parse Patches!")

@@ -3,6 +3,8 @@ package lib
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/jackc/pgx/v4"
 )
@@ -30,6 +32,14 @@ func (dbConn DbConnection) connect() {
 // 	pgx.
 // }
 
-func (dbConn DbConnection) test() {
-
+func (dbConn DbConnection) Test() error {
+	conn, err := pgx.Connect(context.Background(), dbConn.toDatabaseURL())
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(context.Background())
+	err = conn.Ping(context.Background())
+	log.Println("Ping SUCC")
+	return err
 }

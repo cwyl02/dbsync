@@ -33,7 +33,7 @@ func ParsePatches(patchesDir string) ([]*Patch, error) {
 		}
 
 		var patch Patch
-		ParseFromJsonFile(path, patch)
+		ParseFromJsonFile(path, &patch)
 		result = append(result, &patch)
 		return err
 	})

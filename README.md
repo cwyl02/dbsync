@@ -5,4 +5,4 @@
 
 
 ## Build
-```go build -o main```
+```go build -o dbsync cmd/dbsync/main.go```
