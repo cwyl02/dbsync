@@ -1,23 +1,23 @@
 package lib
 
 import (
-	"encoding/json"
 	"io/ioutil"
-	"log"
+
+	"gopkg.in/yaml.v2"
 )
 
-func ParseFromJsonFile(path string, ptr interface{}) error {
+func ParseFromYamlFile(path string, ptr interface{}) error {
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Printf("util: error reading file. err: [%v]\n", err)
+		logger.Printf("util: error reading file. err: [%v]\n", err)
 		return err
 	}
 
-	err = json.Unmarshal(fileData, ptr)
+	err = yaml.Unmarshal(fileData, ptr)
 
 	if err != nil {
-		log.Printf("util: fail to unmarshal. Error: [%v]\n", err)
-		log.Printf("util: data = [%v]\n", fileData)
+		logger.Printf("util: fail to unmarshal. Error: [%v]\n", err)
+		logger.Printf("util: data = [%v]\n", fileData)
 	}
 
 	return err
