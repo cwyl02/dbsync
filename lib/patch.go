@@ -41,7 +41,7 @@ func (p *Patch) processPatch() {
 		logger.Printf("user skipped patch %v. User input: %v\n", p.Path, userIn)
 		return
 	}
-
+	logger.Printf("Applying patch at [%v]\n", p.Path)
 	// sql tx
 	ApplyPatchTx(p.Table, p.SQL)
 }

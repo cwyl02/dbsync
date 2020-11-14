@@ -63,5 +63,19 @@ func CheckPrereqStatus(prereq_id string) bool {
 }
 
 func ApplyPatchTx(table string, sql string) {
+	logger.Printf("SQL transactiono begins\n")
+	tx, err := dbConn.Begin(context.Background())
+	if err != nil {
+		logger.Fatalln(err)
+	}
 
+	// if the tx commits successfully, this is a no-op
+	// uncomment this line if we want to use alternative way to roll back
+	// defer tx.Rollback(context.Background())
+	logger.Println(sql)
+	tx.Exec(context.Background(), sql)
+	err = tx.Commit(context.Background())
+	if err != nil {
+		logger.Fatalln(err)
+	}
 }
