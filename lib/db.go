@@ -3,15 +3,15 @@ package lib
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/jackc/pgx/v4"
 )
 
-// TODO: support socket
+var dbConn *pgx.Conn
 
-type DbConnection struct {
+const patch_status_table_name = "dbsync_patch_status"
+
+type DbConnConfig struct {
 	Host     string `json:"host"`
 	Port     string `json:"port"`
 	Type     string `json:"type"`
@@ -20,26 +20,48 @@ type DbConnection struct {
 	Database string `json:"database"`
 }
 
-func (dbConn DbConnection) toDatabaseURL() string {
+func (dbConn DbConnConfig) toDatabaseURL() string {
 	return fmt.Sprintf("postgres://%v:%v@%v:%v/%v", dbConn.User, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.Database)
 }
 
-func (dbConn DbConnection) connect() {
-	pgx.Connect(context.Background(), dbConn.toDatabaseURL())
+func (dbConnCfg DbConnConfig) getInstance() *pgx.Conn {
+	conn, err := pgx.Connect(context.Background(), dbConnCfg.toDatabaseURL())
+	if err != nil {
+		logger.Fatalf("Unable to connect to database: %v\n", err)
+		panic("getInstance")
+	}
+	return conn
 }
 
-// func (dbConn DbConnection) disconnect() {
-// 	pgx.
-// }
+func InitDbConn(dbConnCfg DbConnConfig) error {
+	dbConn = dbConnCfg.getInstance()
+	// dbsync_patch_status
+	initSql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %v ( id text PRIMARY KEY NOT NULL, applied boolean NOT NULL);", patch_status_table_name)
+	dbConn.Exec(context.Background(), initSql)
 
-func (dbConn DbConnection) Test() error {
-	conn, err := pgx.Connect(context.Background(), dbConn.toDatabaseURL())
-	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
-		os.Exit(1)
+	return nil
+}
+
+func CloseDbConn() {
+	if !dbConn.IsClosed() {
+		dbConn.Close(context.Background())
 	}
-	defer conn.Close(context.Background())
-	err = conn.Ping(context.Background())
-	log.Println("Ping SUCC")
-	return err
+}
+
+// for the current scope, a prereq can only be in either state:
+// the table AND applied=true
+// not in the table
+func CheckPrereqStatus(prereq_id string) bool {
+	var prereq_status bool
+	err := dbConn.QueryRow(context.Background(), "SELECT applied from $1 WHERE id = $2 ;", patch_status_table_name, prereq_id).Scan(&prereq_status)
+	if err != nil {
+		logger.Fatalf("prerequisite patch %v not found in patch status table! aborted.\n", prereq_id)
+		panic("missing prereq")
+	}
+	logger.Printf("%v\n", prereq_status)
+	return prereq_status
+}
+
+func ApplyPatchTx(table string, sql string) {
+
 }

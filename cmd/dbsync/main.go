@@ -5,32 +5,28 @@ import (
 	"log"
 
 	"example.org/york/dbsync/lib"
-	// "dbsync/lib"
 )
 
 var (
-	patchDir     = flag.String("path_dir", ".", "path to the directory that contains patches")
-	dbConnConfig = flag.String("db_conn", "psql_conn.json", "path to the json file that contains the info to connect to the db")
+	patchDir         = flag.String("path_dir", ".", "path to the directory that contains patches")
+	dbConnConfigFile = flag.String("db_conn", "psql_conn.json", "path to the json file that contains the info to connect to the db")
+
+	logger = lib.GetLogger()
 )
 
-// TODO: set up logging
 func main() {
 	flag.Parse()
-	var dbConn lib.DbConnection
-	// parse db connection
-	err := lib.ParseFromJsonFile(*dbConnConfig, &dbConn)
+	var dbConnCfg lib.DbConnConfig
+	err := lib.ParseFromYamlFile(*dbConnConfigFile, &dbConnCfg)
 	if err != nil {
-		log.Fatalln("failed to parse DB connection config file!")
+		logger.Fatalln("failed to parse DB connection config file!")
 	}
-	// test db connection
-	err = dbConn.Test()
-	p, err := lib.ParsePatches(*patchDir)
+	lib.InitDbConn(dbConnCfg)
+	defer lib.CloseDbConn()
+	patches, err := lib.ParsePatches(*patchDir)
+	lib.ProcessPatches(patches)
 	if err != nil {
 		log.Fatalln("failed to parse Patches!")
 	}
-	log.Println(p)
-	// create patch status table if not exist - exit if no create table access   ## table: status
-	// parse patch - inactives will be skipped
-	// build the graph - for unapplied patch          ## table: status
-	// walk the graph - for each node prompt user     ## table: status, @patch.table
+	logger.Println(patches)
 }
