@@ -3,13 +3,16 @@ package lib
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 )
 
 var dbConn *pgx.Conn
 
-const patch_status_table_name = "dbsync_patch_status"
+const (
+	patchStatusTableName = "dbsync_patch_status"
+)
 
 type DbConnConfig struct {
 	Host     string `json:"host"`
@@ -20,8 +23,8 @@ type DbConnConfig struct {
 	Database string `json:"database"`
 }
 
-func (dbConn DbConnConfig) toDatabaseURL() string {
-	return fmt.Sprintf("postgres://%v:%v@%v:%v/%v", dbConn.User, dbConn.Password, dbConn.Host, dbConn.Port, dbConn.Database)
+func (dbConnCfg DbConnConfig) toDatabaseURL() string {
+	return fmt.Sprintf("postgres://%v:%v@%v:%v/%v", dbConnCfg.User, dbConnCfg.Password, dbConnCfg.Host, dbConnCfg.Port, dbConnCfg.Database)
 }
 
 func (dbConnCfg DbConnConfig) getInstance() *pgx.Conn {
@@ -35,9 +38,8 @@ func (dbConnCfg DbConnConfig) getInstance() *pgx.Conn {
 
 func InitDbConn(dbConnCfg DbConnConfig) error {
 	dbConn = dbConnCfg.getInstance()
-	// dbsync_patch_status
-	initSql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %v ( id text PRIMARY KEY NOT NULL, applied boolean NOT NULL);", patch_status_table_name)
-	dbConn.Exec(context.Background(), initSql)
+	initSQL := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %v ( id text PRIMARY KEY NOT NULL, applied_at timestamptz NOT NULL DEFAULT NOW());", patchStatusTableName)
+	dbConn.Exec(context.Background(), initSQL)
 
 	return nil
 }
@@ -48,34 +50,57 @@ func CloseDbConn() {
 	}
 }
 
-// for the current scope, a prereq can only be in either state:
-// the table AND applied=true
-// not in the table
-func CheckPrereqStatus(prereq_id string) bool {
-	var prereq_status bool
-	err := dbConn.QueryRow(context.Background(), "SELECT applied from $1 WHERE id = $2 ;", patch_status_table_name, prereq_id).Scan(&prereq_status)
-	if err != nil {
-		logger.Fatalf("prerequisite patch %v not found in patch status table! aborted.\n", prereq_id)
-		panic("missing prereq")
-	}
-	logger.Printf("%v\n", prereq_status)
-	return prereq_status
+func ApplyPatch(table string, sql string) error {
+	err := doSQLtx(table, sql)
+
+	return err
 }
 
-func ApplyPatchTx(table string, sql string) {
-	logger.Printf("SQL transactiono begins\n")
+func doSQLtx(table string, sql string, sqlArgs ...interface{}) error {
+	logger.Printf("SQL transaction begins\n")
 	tx, err := dbConn.Begin(context.Background())
 	if err != nil {
 		logger.Fatalln(err)
+		return err
 	}
 
+	// uncomment the tx.Rollback line if we want to use pgx library to roll back
 	// if the tx commits successfully, this is a no-op
-	// uncomment this line if we want to use alternative way to roll back
 	// defer tx.Rollback(context.Background())
-	logger.Println(sql)
-	tx.Exec(context.Background(), sql)
+
+	logger.Println("SQL: ")
+	logger.Printf("%v\n", sql)
+	tx.Exec(context.Background(), sql, sqlArgs...)
 	err = tx.Commit(context.Background())
 	if err != nil {
 		logger.Fatalln(err)
+		return err
 	}
+
+	return nil
+}
+
+// for the current scope, a prereq can only be in either state:
+// in the table AND applied_at = now()
+// not in the table
+func GetPatchStatus(patchID string) error {
+	var patchTime time.Time
+	sql := fmt.Sprintf("SELECT applied_at from %v WHERE id = $1 ;", patchStatusTableName)
+	err := dbConn.QueryRow(context.Background(), sql, patchID).Scan(&patchTime)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			logger.Printf("patch id %v not found in patch status table!\n", patchID)
+		} else { // catchall
+			logger.Fatalf("error getting patch status. err: %v\n", err)
+		}
+		return err
+	}
+	// Patch is applied
+	logger.Printf("patch applied at %v\n", patchTime)
+	return nil
+}
+
+func SetPatchStatus(patchID string) {
+	sql := fmt.Sprintf("INSERT INTO %v (id) VALUES ($1);", patchStatusTableName)
+	doSQLtx(patchStatusTableName, sql, patchID)
 }

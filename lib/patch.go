@@ -5,17 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-// type Patch struct {
-// 	Prerequisites []string `json:"prerequisites"`
-// 	ID            string   `json:"id"`
-// 	Table         string   `json:"table"`
-// 	Active        bool     `json:"active"`
-// 	Description   string   `json:"description"`
-// 	SQL           string   `json:"sql"`
-// 	Path          string
-// }
+	"github.com/jackc/pgx/v4"
+)
 
 type Patch struct {
 	Prerequisites []string `yaml:"prerequisites"` // ids of prerequisite patches
@@ -32,6 +24,11 @@ func (p *Patch) SetActive(active bool) {
 }
 
 func (p *Patch) processPatch() {
+	// check this whether this patch is applied already
+	if patchStatus := GetPatchStatus(p.ID); patchStatus != pgx.ErrNoRows {
+		logger.Printf("[%v] is already applied! skipping..\n", p.Path)
+		return
+	}
 	// prompt user
 	fmt.Printf("Would you like to apply [%v] (Y/n)?\n", p.Path)
 
@@ -43,7 +40,11 @@ func (p *Patch) processPatch() {
 	}
 	logger.Printf("Applying patch at [%v]\n", p.Path)
 	// sql tx
-	ApplyPatchTx(p.Table, p.SQL)
+	err := ApplyPatch(p.Table, p.SQL)
+	// record patch in the status table
+	if err == nil {
+		SetPatchStatus(p.ID)
+	}
 }
 
 func ParsePatches(patchesDir string) (map[string]*Patch, error) {
@@ -89,16 +90,18 @@ func ProcessPatches(patches map[string]*Patch) {
 	for id, patch := range patches {
 		logger.Printf("checking prereq patch status of patch: %v\n", id)
 		// check against prereqs
-		for _, prereq_id := range patch.Prerequisites {
-			logger.Printf("prerequisite found in patch metadata. prereq patch id: %v. checking its status...\n", prereq_id)
-			if prereq_status := CheckPrereqStatus(prereq_id); !prereq_status {
+		for _, prereqID := range patch.Prerequisites {
+			logger.Printf("prerequisite found in patch metadata. prereq patch id: %v.\n", prereqID)
+			logger.Println("checking its status...")
+			if prereqStatus := GetPatchStatus(prereqID); prereqStatus == pgx.ErrNoRows {
 				panic("unapplied prerequisite patch")
 			}
 		}
+		logger.Printf("prerequisites of [%v] are all applied!\n", patch.Path)
 	}
 
 	for id, patch := range patches {
-		logger.Printf("processing patch: %v\n", id)
+		logger.Printf("processing patch: [%v] id: %v\n", patch.Path, id)
 		patch.processPatch()
 	}
 }

@@ -9,13 +9,14 @@ import (
 
 var (
 	patchDir         = flag.String("path_dir", ".", "path to the directory that contains patches")
-	dbConnConfigFile = flag.String("db_conn", "psql_conn.json", "path to the json file that contains the info to connect to the db")
-
-	logger = lib.GetLogger()
+	dbConnConfigFile = flag.String("db_conn", "db_connconfig.yaml", "path to the yaml file that contains the info to connect to the db")
+	logFile          = flag.String("log_file", "", "path to the log file output")
 )
 
 func main() {
 	flag.Parse()
+	logger := lib.GetMainLogger(*logFile)
+	defer lib.CloseLogStream()
 	var dbConnCfg lib.DbConnConfig
 	err := lib.ParseFromYamlFile(*dbConnConfigFile, &dbConnCfg)
 	if err != nil {
@@ -28,5 +29,5 @@ func main() {
 	if err != nil {
 		log.Fatalln("failed to parse Patches!")
 	}
-	logger.Println(patches)
+	logger.Println("Bye")
 }
