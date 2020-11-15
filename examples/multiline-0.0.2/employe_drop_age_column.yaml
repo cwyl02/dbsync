@@ -1,0 +1,22 @@
+---
+prerequisites: 
+    - "0"
+    - "1"
+    - 'a1b2c3'
+id: 'dfb7aca3-a9e9-4309-ba96-41429238e3ba'
+table: employee
+active: true
+description: populate some data into employee table
+sql: |
+    INSERT INTO employee (id, name)
+    VALUES
+        (0, 'John Doe'),
+        (1, 'Dou Jiang'),
+        (2, 'Zed'),
+        (3, 'Vincent');
+    INSERT INTO employee (id, name)
+    VALUES
+        (4, 'Bryant'),
+        (5, 'Jude'),
+        (6, 'Paul'),
+        (7, 'Kanye');

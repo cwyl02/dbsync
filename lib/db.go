@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -56,8 +57,14 @@ func ApplyPatch(table string, sql string) error {
 	return err
 }
 
-func doSQLtx(table string, sql string, sqlArgs ...interface{}) error {
+func doSQLtx(table string, sqlStmts string, sqlArgs ...interface{}) error {
 	logger.Printf("SQL transaction begins\n")
+	sqlStatements := strings.Split(sqlStmts, ";")
+	sqlStatements = Map(sqlStatements, func(strIn string) string {
+		return strIn + ";"
+	})
+	sqlStatements = sqlStatements[:len(sqlStatements)-1]
+
 	tx, err := dbConn.Begin(context.Background())
 	if err != nil {
 		logger.Fatalln(err)
@@ -68,9 +75,19 @@ func doSQLtx(table string, sql string, sqlArgs ...interface{}) error {
 	// if the tx commits successfully, this is a no-op
 	// defer tx.Rollback(context.Background())
 
-	logger.Println("SQL: ")
-	logger.Printf("%v\n", sql)
-	tx.Exec(context.Background(), sql, sqlArgs...)
+	for _, sqlStatement := range sqlStatements {
+		logger.Println("SQL statement: ")
+		// logger.Printf("%v\n", sqlStatement)
+		logger.Printf("%v\n", strings.Trim(sqlStatement, "\n"))
+		tx.Exec(context.Background(), sqlStatement, sqlArgs...)
+		// if len(sqlArgs) > 0 {
+
+		// } else {
+		// 	tx.Exec(context.Background(), sqlStatement)
+		// }
+
+	}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		logger.Fatalln(err)
