@@ -1,0 +1,8 @@
+---
+prerequisites:
+# - asdb
+id: '0'
+table: employee
+active: true
+description: add new column GENDER to EMPLYEE
+sql: ALTER TABLE employee ADD gender varchar(5);

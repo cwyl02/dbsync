@@ -1,0 +1,12 @@
+---
+prerequisites: 
+    - "0"
+    - "1"
+id: 'a1b2c3'
+table: employee
+active: true
+description: delete column age, dummy, gender from EMPLYEE
+sql: |
+    ALTER TABLE employee DROP COLUMN age;
+    ALTER TABLE employee DROP COLUMN dummy;
+    ALTER TABLE employee DROP COLUMN gender;

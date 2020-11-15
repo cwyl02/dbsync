@@ -1,0 +1,9 @@
+---
+prerequisites: []
+id: '1'
+table: employee
+active: true
+description: add new column AGE to EMPLYEE
+sql: |
+    ALTER TABLE employee ADD COLUMN age integer;
+    ALTER TABLE employee ADD COLUMN dummy text;
