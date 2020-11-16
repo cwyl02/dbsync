@@ -1,6 +1,5 @@
 ---
-prerequisites:
-# - asdb
+prerequisites: []
 id: '0'
 table: employee
 active: true

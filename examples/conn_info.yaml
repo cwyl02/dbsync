@@ -1,0 +1,7 @@
+---
+host: localhost
+port: '5432'
+type: postgres
+user: example
+password: example135!
+database: db0
