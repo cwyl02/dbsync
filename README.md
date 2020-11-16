@@ -5,6 +5,7 @@ dbsync is a CLI tool that manages PostgreSQL db table schema migration written i
 1. No symlinks in patches directory
 2. Each cli execution only handles patches to 1 **PostgreSQL** database
 3. the SQL statement in patch json file is not over 10s of million lines(bad idea for a db patch anyways...) we slurp **the whole json file into memory**!
+4. User answer of [Y/n] doesn't contain space(' ') character
 
 ## Build
 
