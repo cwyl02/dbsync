@@ -9,15 +9,15 @@ import (
 func ParseFromYamlFile(path string, ptr interface{}) error {
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
-		logger.Printf("util: error reading file. err: [%v]\n", err)
+		logger.Panicf("error reading file. err: [%v]\n", err)
 		return err
 	}
 
 	err = yaml.Unmarshal(fileData, ptr)
 
 	if err != nil {
-		logger.Printf("util: fail to unmarshal. Error: [%v]\n", err)
-		logger.Printf("util: data = [%v]\n", fileData)
+		logger.Panicf("fail to unmarshal. Error: [%v]\n", err)
+		logger.Panicf("data = [%v]\n", fileData)
 	}
 
 	return err

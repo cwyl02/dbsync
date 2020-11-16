@@ -9,7 +9,7 @@ import (
 
 var (
 	patchDir         = flag.String("path_dir", ".", "path to the directory that contains patches")
-	dbConnConfigFile = flag.String("db_conn", "db_connconfig.yaml", "path to the yaml file that contains the info to connect to the db")
+	dbConnConfigFile = flag.String("db_conn", "conn_info.yaml", "path to the yaml file that contains the info to connect to the db")
 	logFile          = flag.String("log_file", "", "path to the log file output")
 )
 

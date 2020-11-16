@@ -31,8 +31,7 @@ func (dbConnCfg DbConnConfig) toDatabaseURL() string {
 func (dbConnCfg DbConnConfig) getInstance() *pgx.Conn {
 	conn, err := pgx.Connect(context.Background(), dbConnCfg.toDatabaseURL())
 	if err != nil {
-		logger.Fatalf("Unable to connect to database: %v\n", err)
-		panic("getInstance")
+		logger.Panicf("Unable to connect to database: %v\n", err)
 	}
 	return conn
 }
@@ -77,15 +76,12 @@ func doSQLtx(table string, sqlStmts string, sqlArgs ...interface{}) error {
 
 	for _, sqlStatement := range sqlStatements {
 		logger.Println("SQL statement: ")
-		// logger.Printf("%v\n", sqlStatement)
 		logger.Printf("%v\n", strings.Trim(sqlStatement, "\n"))
-		tx.Exec(context.Background(), sqlStatement, sqlArgs...)
-		// if len(sqlArgs) > 0 {
-
-		// } else {
-		// 	tx.Exec(context.Background(), sqlStatement)
-		// }
-
+		cmdTag, err := tx.Exec(context.Background(), sqlStatement, sqlArgs...)
+		if err != nil {
+			logger.Println("error from tx.Exec()")
+			logger.Printf("cmdTag: %v\n err: [%v]\n", cmdTag, err)
+		}
 	}
 
 	err = tx.Commit(context.Background())
@@ -108,7 +104,7 @@ func GetPatchStatus(patchID string) error {
 		if err == pgx.ErrNoRows {
 			logger.Printf("patch id %v not found in patch status table!\n", patchID)
 		} else { // catchall
-			logger.Fatalf("error getting patch status. err: %v\n", err)
+			logger.Panicf("error getting patch status. err: %v\n", err)
 		}
 		return err
 	}

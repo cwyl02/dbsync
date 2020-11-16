@@ -50,14 +50,18 @@ func (p *Patch) processPatch() {
 func ParsePatches(patchesDir string) (map[string]*Patch, error) {
 	patches := make(map[string]*Patch)
 
-	err := filepath.Walk(patchesDir, func(path string, info os.FileInfo, err error) error {
+	_, err := os.Stat(patchesDir)
+	if os.IsNotExist(err) {
+		logger.Panicf("patch path [%v] doesn't exist\n", patchesDir)
+	}
+
+	err = filepath.Walk(patchesDir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 
 		if err != nil {
-			logger.Fatalf("error accessing a path %q: %v\n", path, err)
-			return err
+			logger.Panicf("error accessing a path %q: %v\n", path, err)
 		}
 
 		var patch Patch
@@ -66,8 +70,7 @@ func ParsePatches(patchesDir string) (map[string]*Patch, error) {
 
 		if patch.Active {
 			if _, exists := patches[patch.ID]; exists {
-				logger.Fatalf("error: found patches with duplicate id - %v\n", patch.ID)
-				panic("duplicate patch id")
+				logger.Panicf("error: found patches with duplicate id - %v\n", patch.ID)
 			}
 
 			patches[patch.ID] = &patch
@@ -77,8 +80,7 @@ func ParsePatches(patchesDir string) (map[string]*Patch, error) {
 	})
 
 	if err != nil {
-		logger.Fatalf("error walking the path %q: %v\n", patchesDir, err)
-		return nil, err
+		logger.Panicf("error walking the path %q: %v\n", patchesDir, err)
 	}
 
 	return patches, nil

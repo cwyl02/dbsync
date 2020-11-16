@@ -25,5 +25,6 @@ func GetMainLogger(logfile string) *log.Logger {
 }
 
 func CloseLogStream() {
+	logger.Println("Closing log stream..")
 	logDestination.Close()
 }
